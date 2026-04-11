@@ -1,27 +1,47 @@
-name: Đúc Vũ Khí Linux
+name: Build Linux Engine
 
 on:
-  workflow_dispatch: # Cho phép bạn bấm nút chạy thủ công trên web
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
-    runs-on: ubuntu-latest # Mượn máy chủ Linux xịn nhất
+    runs-on: ubuntu-latest
 
     steps:
-    - name: 1. Tải code của bạn về máy chủ
+    - name: 1. Tai code ve may chu
       uses: actions/checkout@v4
 
-    - name: 2. Cấu hình CMake
-      run: cmake -S ./anticheatengine -B ./anticheatengine/build
+    - name: 2. Tim thu mục code và Cau hinh CMake
+      run: |
+        # Tim file CMakeLists.txt dau tien xuat hien trong du an
+        CMAKE_ROOT=$(find . -name "CMakeLists.txt" -not -path "*/build/*" | head -n 1 | xargs dirname)
+        if [ -z "$CMAKE_ROOT" ]; then
+          echo "Error: Khong tim thay file CMakeLists.txt nao ca!"
+          exit 1
+        fi
+        echo "Da tim thay code C++ tai: $CMAKE_ROOT"
+        cmake -S "$CMAKE_ROOT" -B ./build_linux
 
-    - name: 3. Tiến hành đúc
-      run: cmake --build ./anticheatengine/build --config Release
+    - name: 3. Tien hanh duc
+      run: cmake --build ./build_linux --config Release
 
-    - name: 4. Đổi tên cho đúng chuẩn Java yêu cầu
-      run: mv ./anticheatengine/build/Engine ./anticheatengine/build/Engine-Linux
+    - name: 4. Tim file nhi phan va doi ten
+      run: |
+        # Tim file thuc thi (thuong khong co duoi) ben trong thu muc build
+        # Loai tru cac thu muc va file temp
+        EXEC_FILE=$(find ./build_linux -maxdepth 2 -type f -executable -not -name "*.cmake" -not -name "Makefile" | head -n 1)
+        if [ -z "$EXEC_FILE" ]; then
+          echo "Error: Duc xong nhung khong tim thay file thuc thi!"
+          exit 1
+        fi
+        echo "File duc xong la: $EXEC_FILE"
+        mv "$EXEC_FILE" ./Engine-Linux
 
-    - name: 5. Gói hàng và gửi link tải cho bạn
+    - name: 5. Goi hang va gui link tai cho ban
       uses: actions/upload-artifact@v4
       with:
         name: Engine-Linux-Ready
-        path: ./anticheatengine/build/Engine-Linux
+        path: ./Engine-Linux
