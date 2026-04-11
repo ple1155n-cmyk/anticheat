@@ -1,0 +1,11 @@
+name: AntiCheatBridge
+version: 1.0.0
+main: org.anticheat.bridge.AntiCheatBridge
+api-version: '1.20'
+depend: [ProtocolLib]
+description: A premium Anti-Cheat Java Communication Bridge
+authors: [EliteDeveloper]
+permissions:
+  anticheat.admin:
+    description: Allows viewing anti-cheat alerts
+    default: op

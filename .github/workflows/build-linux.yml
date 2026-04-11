@@ -1,0 +1,27 @@
+name: Đúc Vũ Khí Linux
+
+on:
+  workflow_dispatch: # Cho phép bạn bấm nút chạy thủ công trên web
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # Mượn máy chủ Linux xịn nhất
+
+    steps:
+    - name: 1. Tải code của bạn về máy chủ
+      uses: actions/checkout@v4
+
+    - name: 2. Cấu hình CMake
+      run: cmake -S ./anticheatengine -B ./anticheatengine/build
+
+    - name: 3. Tiến hành đúc
+      run: cmake --build ./anticheatengine/build --config Release
+
+    - name: 4. Đổi tên cho đúng chuẩn Java yêu cầu
+      run: mv ./anticheatengine/build/Engine ./anticheatengine/build/Engine-Linux
+
+    - name: 5. Gói hàng và gửi link tải cho bạn
+      uses: actions/upload-artifact@v4
+      with:
+        name: Engine-Linux-Ready
+        path: ./anticheatengine/build/Engine-Linux

@@ -1,0 +1,12 @@
+# Bỏ qua rác của Java
+target/
+*.jar
+
+# Bỏ qua rác của C++
+anticheatengine/build/
+anticheatengine/build-linux/
+*.exe
+
+# Bỏ qua rác của phần mềm Code (nếu có)
+.vscode/
+.idea/

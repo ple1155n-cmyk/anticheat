@@ -1,0 +1,19 @@
+# AntiCheatBridge Configuration
+
+# External Engine Connection Settings
+engine:
+  # The IP address of the external anti-cheat engine (C++/Golang)
+  host: "127.0.0.1"
+  # The TCP port the engine is listening on
+  port: 8080
+  # Timeout in milliseconds for connecting and reading
+  timeout: 5000
+
+# Punishment Settings
+punishments:
+  # Whether to teleport players back to their last safe location on FLAG
+  cancel-move: true
+  # Permission required to see alerts
+  alert-permission: "anticheat.admin"
+  # Alert message format
+  alert-format: "&8[&bAntiCheat&8] &7Player &f{player} &7flagged &b{type} &8(&fvl: {vl}&8)"
