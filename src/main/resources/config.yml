@@ -24,3 +24,8 @@ timer:
 
 speed:
   vl_kick_threshold: 5.0
+
+# Stealth Kick Delay (Randomized)
+stealth:
+  min_delay_seconds: 1
+  max_delay_seconds: 10

@@ -86,9 +86,9 @@ int main() {
                 state.lastUpdateTime = now;
 
                 if (state.tokens < 0.0) {
-                    std::string kickPacket = "KICK|" + playerName + "|Timer Hack Detected (Packet Rate Too High)\n";
-                    server.sendToClient(clientSocket, kickPacket);
-                    std::cout << "[KICK] " << playerName << " triggered Timer Hack (tokens: " << state.tokens << ")" << std::endl;
+                    std::string alertPacket = "ALERT|" + playerName + "|Timer Hack Detected (Packet Rate Too High)\n";
+                    server.sendToClient(clientSocket, alertPacket);
+                    std::cout << "[ALERT] " << playerName << " triggered Timer Hack (tokens: " << state.tokens << ")" << std::endl;
                     
                     state.tokens = globalMaxTokens; // Reset tokens to avoid kick spam
                     playerManager.updatePlayer(playerName, state);
@@ -121,9 +121,9 @@ int main() {
                         std::cout << "[DEBUG] " << playerName << " Speed VL: " << state.speedVL << std::endl;
 
                         if (state.speedVL > globalSpeedVlKick) {
-                            std::string kickPacket = "KICK|" + playerName + "|Speed Hack Detected\n";
-                            server.sendToClient(clientSocket, kickPacket);
-                            std::cout << "[KICK] " << playerName << " exceeded Speed VL threshold (" << globalSpeedVlKick << ")." << std::endl;
+                            std::string alertPacket = "ALERT|" + playerName + "|Speed Hack Detected\n";
+                            server.sendToClient(clientSocket, alertPacket);
+                            std::cout << "[ALERT] " << playerName << " exceeded Speed VL threshold (" << globalSpeedVlKick << ")." << std::endl;
                             state.speedVL = 0.0;
                         }
                     } else {

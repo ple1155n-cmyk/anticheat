@@ -20,6 +20,9 @@ public class ConfigManager {
     
     private double timerMaxTokens;
     private double speedVlKickThreshold;
+    
+    private int minDelaySeconds;
+    private int maxDelaySeconds;
 
     public ConfigManager(AntiCheatBridge plugin) {
         this.plugin = plugin;
@@ -41,5 +44,8 @@ public class ConfigManager {
 
         this.timerMaxTokens = config.getDouble("timer.max_tokens", 50.0);
         this.speedVlKickThreshold = config.getDouble("speed.vl_kick_threshold", 5.0);
+
+        this.minDelaySeconds = config.getInt("stealth.min_delay_seconds", 1);
+        this.maxDelaySeconds = config.getInt("stealth.max_delay_seconds", 10);
     }
 }

@@ -81,7 +81,32 @@ public class EngineClient {
     private void processVerdict(String line) {
         if (line == null || line.isEmpty()) return;
 
-        // Support for new delimited format: KICK|<PlayerName>|<Reason>
+        // Support for new delimited format: ALERT|<PlayerName>|<Reason> (Stealth Kick)
+        if (line.startsWith("ALERT|")) {
+            String[] parts = line.split("\\|");
+            if (parts.length >= 3) {
+                String playerName = parts[1];
+                String reason = parts[2];
+
+                // Immediate Admin Log
+                int minTicks = plugin.getConfigManager().getMinDelaySeconds() * 20;
+                int maxTicks = plugin.getConfigManager().getMaxDelaySeconds() * 20;
+                int delayTicks = minTicks + (int)(Math.random() * ((maxTicks - minTicks) + 1));
+                
+                plugin.getLogger().info("[AntiCheat] Stealth Kick scheduled for " + playerName + " in " + delayTicks + " ticks. Reason: " + reason);
+
+                // Delayed Fake Kick
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    Player player = Bukkit.getPlayer(playerName);
+                    if (player != null && player.isOnline()) {
+                        player.kick(Component.text("Internal Exception: java.io.IOException: An established connection was aborted by the software in your host machine"));
+                    }
+                }, delayTicks);
+                return;
+            }
+        }
+
+        // Support for delimited format: KICK|<PlayerName>|<Reason> (Instant Kick)
         if (line.startsWith("KICK|")) {
             String[] parts = line.split("\\|");
             if (parts.length >= 3) {
