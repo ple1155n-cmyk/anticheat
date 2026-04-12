@@ -25,6 +25,10 @@ void initializeWinsock() {}
 void cleanupWinsock() {}
 #endif
 
+// Global Config (Synced from Java)
+double globalMaxTokens = 50.0;
+double globalSpeedVlKick = 5.0;
+
 // Helper to get current time in ms
 unsigned long long getCurrentTimeMs() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -49,6 +53,15 @@ int main() {
         }
 
         try {
+            // --- Configuration Sync ---
+            if (parts.size() >= 3 && parts[0] == "CONFIG") {
+                globalMaxTokens = std::stod(parts[1]);
+                globalSpeedVlKick = std::stod(parts[2]);
+                std::cout << "[INFO] Received config from Java: max_tokens=" << globalMaxTokens 
+                          << ", speed_vl=" << globalSpeedVlKick << std::endl;
+                return;
+            }
+
             if (parts.size() >= 7 && parts[0] == "MOVE") {
                 std::string playerName = parts[1];
                 double x = std::stod(parts[2]);
@@ -66,7 +79,7 @@ int main() {
                     
                     // Regenerate tokens: 1 token per 50ms (legal tick rate)
                     state.tokens += (double)elapsed / 50.0;
-                    if (state.tokens > 50.0) state.tokens = 50.0; // Clamp max buffer
+                    if (state.tokens > globalMaxTokens) state.tokens = globalMaxTokens; // Clamp max buffer
                 }
 
                 state.tokens -= 1.0; // Consume 1 token per movement packet
@@ -77,7 +90,7 @@ int main() {
                     server.sendToClient(clientSocket, kickPacket);
                     std::cout << "[KICK] " << playerName << " triggered Timer Hack (tokens: " << state.tokens << ")" << std::endl;
                     
-                    state.tokens = 50.0; // Reset tokens to avoid kick spam
+                    state.tokens = globalMaxTokens; // Reset tokens to avoid kick spam
                     playerManager.updatePlayer(playerName, state);
                     return; // Stop processing this packet
                 }
@@ -107,10 +120,10 @@ int main() {
                         state.speedVL += 1.0;
                         std::cout << "[DEBUG] " << playerName << " Speed VL: " << state.speedVL << std::endl;
 
-                        if (state.speedVL > 5.0) {
+                        if (state.speedVL > globalSpeedVlKick) {
                             std::string kickPacket = "KICK|" + playerName + "|Speed Hack Detected\n";
                             server.sendToClient(clientSocket, kickPacket);
-                            std::cout << "[KICK] " << playerName << " exceeded Speed VL threshold (5.0)." << std::endl;
+                            std::cout << "[KICK] " << playerName << " exceeded Speed VL threshold (" << globalSpeedVlKick << ")." << std::endl;
                             state.speedVL = 0.0;
                         }
                     } else {

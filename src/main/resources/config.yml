@@ -17,3 +17,10 @@ punishments:
   alert-permission: "anticheat.admin"
   # Alert message format
   alert-format: "&8[&bAntiCheat&8] &7Player &f{player} &7flagged &b{type} &8(&fvl: {vl}&8)"
+
+# Detection Thresholds (Synced to C++ Engine)
+timer:
+  max_tokens: 50.0
+
+speed:
+  vl_kick_threshold: 5.0

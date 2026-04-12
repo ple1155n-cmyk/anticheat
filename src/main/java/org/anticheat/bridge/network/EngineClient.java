@@ -46,6 +46,9 @@ public class EngineClient {
                 
                 plugin.getLogger().info("Connected to external engine at " + host + ":" + port);
                 
+                // Send dynamic configuration
+                sendRaw("CONFIG|" + plugin.getConfigManager().getTimerMaxTokens() + "|" + plugin.getConfigManager().getSpeedVlKickThreshold());
+                
                 // Start listening for verdicts
                 startListening();
                 

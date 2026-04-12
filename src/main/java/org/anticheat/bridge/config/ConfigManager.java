@@ -17,6 +17,9 @@ public class ConfigManager {
     private boolean cancelMove;
     private String alertPermission;
     private String alertFormat;
+    
+    private double timerMaxTokens;
+    private double speedVlKickThreshold;
 
     public ConfigManager(AntiCheatBridge plugin) {
         this.plugin = plugin;
@@ -35,5 +38,8 @@ public class ConfigManager {
         this.cancelMove = config.getBoolean("punishments.cancel-move", true);
         this.alertPermission = config.getString("punishments.alert-permission", "anticheat.admin");
         this.alertFormat = config.getString("punishments.alert-format", "&8[&bAntiCheat&8] &7Player &f{player} &7flagged &b{type} &8(&fvl: {vl}&8)");
+
+        this.timerMaxTokens = config.getDouble("timer.max_tokens", 50.0);
+        this.speedVlKickThreshold = config.getDouble("speed.vl_kick_threshold", 5.0);
     }
 }
