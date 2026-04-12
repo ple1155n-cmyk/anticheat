@@ -16,6 +16,7 @@ struct PlayerState {
     unsigned long long lastUpdateTime = 0;
     bool lastOnGround = true;
     double lastDistance = 0.0;
+    double speedVL = 0.0;
 };
 
 class PlayerManager {

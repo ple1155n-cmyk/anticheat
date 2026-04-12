@@ -104,10 +104,18 @@ int main() {
                     limit = (limit * (1.0 + (0.20 * speedLevel))) + 0.03;
 
                     if (distance > limit) {
-                        std::string kickPacket = "KICK|" + playerName + "|Speed Hack Detected\n";
-                        server.sendToClient(clientSocket, kickPacket);
-                        std::cout << "[KICK] " << playerName << " moved " << distance 
-                                  << " (max: " << limit << ")" << std::endl;
+                        state.speedVL += 1.0;
+                        std::cout << "[DEBUG] " << playerName << " Speed VL: " << state.speedVL << std::endl;
+
+                        if (state.speedVL > 5.0) {
+                            std::string kickPacket = "KICK|" + playerName + "|Speed Hack Detected\n";
+                            server.sendToClient(clientSocket, kickPacket);
+                            std::cout << "[KICK] " << playerName << " exceeded Speed VL threshold (5.0)." << std::endl;
+                            state.speedVL = 0.0;
+                        }
+                    } else {
+                        state.speedVL -= 0.05;
+                        if (state.speedVL < 0.0) state.speedVL = 0.0;
                     }
 
                     state.lastDistance = distance;
