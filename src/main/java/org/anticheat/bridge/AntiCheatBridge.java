@@ -6,12 +6,15 @@ import org.anticheat.bridge.listener.PacketListener;
 import org.anticheat.bridge.network.EngineClient;
 import org.anticheat.bridge.process.EngineLauncher;
 import org.bukkit.Bukkit;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import lombok.Getter;
 
 @Getter
-public class AntiCheatBridge extends JavaPlugin {
+public class AntiCheatBridge extends JavaPlugin implements Listener {
 
     private static AntiCheatBridge instance;
     private ConfigManager configManager;
@@ -43,6 +46,9 @@ public class AntiCheatBridge extends JavaPlugin {
             // 6. Register standard Movement Listener
             Bukkit.getPluginManager().registerEvents(new org.anticheat.bridge.listener.MovementListener(this), this);
             
+            // 7. Register self as Listener (for PlayerQuitEvent)
+            Bukkit.getPluginManager().registerEvents(this, this);
+            
             getLogger().info("AntiCheatBridge successfully linked to external engine.");
         }, 40L);
         
@@ -66,5 +72,11 @@ public class AntiCheatBridge extends JavaPlugin {
 
     public static AntiCheatBridge getInstance() {
         return instance;
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        // Remove from pending kicks if they disconnect before the delayed task executes
+        EngineClient.getPendingKicks().remove(event.getPlayer().getName());
     }
 }

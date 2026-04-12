@@ -12,6 +12,9 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +29,12 @@ public class EngineClient {
     private PrintWriter out;
     private BufferedReader in;
     private boolean connected = false;
+
+    private static final Set<String> pendingKicks = Collections.synchronizedSet(new HashSet<>());
+
+    public static Set<String> getPendingKicks() {
+        return pendingKicks;
+    }
 
     public EngineClient(AntiCheatBridge plugin) {
         this.plugin = plugin;
@@ -88,6 +97,10 @@ public class EngineClient {
                 String playerName = parts[1];
                 String reason = parts[2];
 
+                // Debounce filter: Ignore if already scheduled for a kick
+                if (pendingKicks.contains(playerName)) return;
+                pendingKicks.add(playerName);
+
                 // Immediate Admin Log
                 int minTicks = plugin.getConfigManager().getMinDelaySeconds() * 20;
                 int maxTicks = plugin.getConfigManager().getMaxDelaySeconds() * 20;
@@ -97,9 +110,14 @@ public class EngineClient {
 
                 // Delayed Fake Kick
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    Player player = Bukkit.getPlayer(playerName);
-                    if (player != null && player.isOnline()) {
-                        player.kick(Component.text("Internal Exception: java.io.IOException: An established connection was aborted by the software in your host machine"));
+                    try {
+                        Player player = Bukkit.getPlayer(playerName);
+                        if (player != null && player.isOnline()) {
+                            player.kick(Component.text("Internal Exception: java.io.IOException: An established connection was aborted by the software in your host machine"));
+                        }
+                    } finally {
+                        // Remove from pending so they can rejoin/re-flag in the future
+                        pendingKicks.remove(playerName);
                     }
                 }, delayTicks);
                 return;
