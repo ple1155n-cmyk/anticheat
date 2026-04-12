@@ -5,7 +5,7 @@ engine:
   # The IP address of the external anti-cheat engine (C++/Golang)
   host: "127.0.0.1"
   # The TCP port the engine is listening on
-  port: 8080
+  port: 25577
   # Timeout in milliseconds for connecting and reading
   timeout: 5000
 

@@ -87,15 +87,14 @@ public class EngineLauncher {
      */
     public void stopEngine() {
         if (engineProcess != null && engineProcess.isAlive()) {
-            plugin.getLogger().info("Stopping external anti-cheat engine...");
-            engineProcess.destroy();
+            plugin.getLogger().info("Forcibly stopping external anti-cheat engine...");
+            engineProcess.destroyForcibly();
+            
+            // Ensure handle is cleaned up
             try {
-                // Wait briefly for graceful shutdown, then force if necessary
-                if (!engineProcess.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
-                    engineProcess.destroyForcibly();
-                }
+                engineProcess.waitFor();
             } catch (InterruptedException e) {
-                engineProcess.destroyForcibly();
+                Thread.currentThread().interrupt();
             }
         }
     }

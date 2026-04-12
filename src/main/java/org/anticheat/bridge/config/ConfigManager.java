@@ -29,7 +29,7 @@ public class ConfigManager {
         FileConfiguration config = plugin.getConfig();
 
         this.engineHost = config.getString("engine.host", "127.0.0.1");
-        this.enginePort = config.getInt("engine.port", 8080);
+        this.enginePort = config.getInt("engine.port", 25577);
         this.engineTimeout = config.getInt("engine.timeout", 5000);
 
         this.cancelMove = config.getBoolean("punishments.cancel-move", true);

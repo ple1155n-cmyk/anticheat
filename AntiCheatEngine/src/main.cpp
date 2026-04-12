@@ -27,7 +27,7 @@ void cleanupWinsock() {}
 int main() {
     initializeWinsock();
 
-    Server server(8080);
+    Server server(25577);
     PlayerManager playerManager;
 
     auto onMessage = [&](const std::string& rawMessage, SOCKET clientSocket) {
