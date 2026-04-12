@@ -14,6 +14,8 @@ struct PlayerState {
     bool initialized = false;
     double tokens = 50.0;
     unsigned long long lastUpdateTime = 0;
+    bool lastOnGround = true;
+    double lastDistance = 0.0;
 };
 
 class PlayerManager {

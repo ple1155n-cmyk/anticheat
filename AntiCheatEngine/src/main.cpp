@@ -86,24 +86,38 @@ int main() {
                 if (state.initialized) {
                     double dx = x - state.lastX;
                     double dz = z - state.lastZ;
-                    double actualDistance = std::sqrt(dx * dx + dz * dz);
+                    double distance = std::sqrt(dx * dx + dz * dz);
 
-                    double baseMaxSpeed = 0.36; 
-                    double multiplier = 1.0 + (0.20 * speedLevel);
-                    double maxAllowedDistance = (baseMaxSpeed * multiplier) + 0.05;
+                    double limit = 0.36;
 
-                    if (actualDistance > maxAllowedDistance) {
+                    if (onGround) {
+                        limit = 0.36;
+                    } else if (state.lastOnGround) {
+                        // Jump (First air tick)
+                        limit = 0.62;
+                    } else {
+                        // Air (Subsequent air ticks) - Friction math
+                        limit = (state.lastDistance * 0.91) + 0.026;
+                    }
+
+                    // Apply Potion Multiplier and lag buffer
+                    limit = (limit * (1.0 + (0.20 * speedLevel))) + 0.03;
+
+                    if (distance > limit) {
                         std::string kickPacket = "KICK|" + playerName + "|Speed Hack Detected\n";
                         server.sendToClient(clientSocket, kickPacket);
-                        std::cout << "[KICK] " << playerName << " moved " << actualDistance 
-                                  << " (max: " << maxAllowedDistance << ")" << std::endl;
+                        std::cout << "[KICK] " << playerName << " moved " << distance 
+                                  << " (max: " << limit << ")" << std::endl;
                     }
+
+                    state.lastDistance = distance;
                 }
 
                 // Update movement state
                 state.lastX = x;
                 state.lastY = y;
                 state.lastZ = z;
+                state.lastOnGround = onGround;
                 state.onGround = onGround;
                 state.initialized = true;
                 playerManager.updatePlayer(playerName, state);
