@@ -92,6 +92,7 @@
                     <nonFilteredFileExtensions>
                         <nonFilteredFileExtension>exe</nonFilteredFileExtension>
                         <nonFilteredFileExtension>so</nonFilteredFileExtension>
+                        <nonFilteredFileExtension>Engine-Linux</nonFilteredFileExtension>
                     </nonFilteredFileExtensions>
                 </configuration>
             </plugin>
@@ -100,6 +101,16 @@
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+                <excludes>
+                    <exclude>Engine-Linux</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>Engine-Linux</include>
+                </includes>
             </resource>
         </resources>
     </build>

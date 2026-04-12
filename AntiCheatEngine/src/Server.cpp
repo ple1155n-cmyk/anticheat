@@ -13,6 +13,12 @@ void Server::start(std::function<void(const std::string&, SOCKET)> onMessage) {
         return;
     }
 
+    // Add SO_REUSEADDR to allow the server to restart and bind to the same port immediately
+    int opt = 1;
+    if (setsockopt(m_listenSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt)) == SOCKET_ERROR) {
+        std::cerr << "setsockopt(SO_REUSEADDR) failed." << std::endl;
+    }
+
     sockaddr_in serverAddr{};
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_addr.s_addr = INADDR_ANY;
