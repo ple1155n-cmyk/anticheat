@@ -12,14 +12,16 @@ struct PlayerState {
     float vl = 0.0f;
     long long lastPing = 0;
     bool initialized = false;
+    double tokens = 50.0;
+    unsigned long long lastUpdateTime = 0;
 };
 
 class PlayerManager {
 public:
-    PlayerState getPlayer(const std::string& uuid);
-    void updatePlayer(const std::string& uuid, const PlayerState& state);
-    void updateVL(const std::string& uuid, float delta);
-    void decayVL(const std::string& uuid);
+    PlayerState getPlayer(const std::string& name);
+    void updatePlayer(const std::string& name, const PlayerState& state);
+    void updateVL(const std::string& name, float delta);
+    void decayVL(const std::string& name);
 
 private:
     std::unordered_map<std::string, PlayerState> m_players;

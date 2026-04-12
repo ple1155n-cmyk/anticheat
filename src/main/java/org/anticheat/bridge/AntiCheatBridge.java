@@ -40,9 +40,8 @@ public class AntiCheatBridge extends JavaPlugin {
             this.engineClient = new EngineClient(this);
             this.engineClient.connect();
             
-            // 5. Register Packet Interceptor after connection is established
-            this.packetListener = new PacketListener(this);
-            this.packetListener.register();
+            // 6. Register standard Movement Listener
+            Bukkit.getPluginManager().registerEvents(new org.anticheat.bridge.listener.MovementListener(this), this);
             
             getLogger().info("AntiCheatBridge successfully linked to external engine.");
         }, 40L);

@@ -1,10 +1,11 @@
 #include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <cmath>
+#include <chrono>
 #include "Server.h"
 #include "PlayerManager.h"
-#include "Checks.h"
-#include <nlohmann/json.hpp>
-
-using json = nlohmann::json;
 
 #ifdef _WIN32
 void initializeWinsock() {
@@ -24,6 +25,13 @@ void initializeWinsock() {}
 void cleanupWinsock() {}
 #endif
 
+// Helper to get current time in ms
+unsigned long long getCurrentTimeMs() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()
+    ).count();
+}
+
 int main() {
     initializeWinsock();
 
@@ -31,26 +39,84 @@ int main() {
     PlayerManager playerManager;
 
     auto onMessage = [&](const std::string& rawMessage, SOCKET clientSocket) {
+        if (rawMessage.empty()) return;
+
+        std::vector<std::string> parts;
+        std::stringstream ss(rawMessage);
+        std::string item;
+        while (std::getline(ss, item, '|')) {
+            parts.push_back(item);
+        }
+
         try {
-            json data = json::parse(rawMessage);
-            
-            if (data.contains("action") && data["action"] == "MOVE") {
-                auto verdict = Checks::performChecks(data, playerManager);
-                
-                if (verdict) {
-                    std::string response = verdict->toJson().dump() + "\n";
-                    server.sendToClient(clientSocket, response);
-                    std::cout << "[FLAG] " << verdict->player << " flagged for " << verdict->type << std::endl;
+            if (parts.size() >= 7 && parts[0] == "MOVE") {
+                std::string playerName = parts[1];
+                double x = std::stod(parts[2]);
+                double y = std::stod(parts[3]);
+                double z = std::stod(parts[4]);
+                bool onGround = (parts[5] == "true");
+                int speedLevel = std::stoi(parts[6]);
+
+                unsigned long long now = getCurrentTimeMs();
+                PlayerState state = playerManager.getPlayer(playerName);
+
+                // --- 1. Timer / TickShift Detection (Token Bucket) ---
+                if (state.lastUpdateTime != 0) {
+                    unsigned long long elapsed = now - state.lastUpdateTime;
+                    
+                    // Regenerate tokens: 1 token per 50ms (legal tick rate)
+                    state.tokens += (double)elapsed / 50.0;
+                    if (state.tokens > 50.0) state.tokens = 50.0; // Clamp max buffer
                 }
+
+                state.tokens -= 1.0; // Consume 1 token per movement packet
+                state.lastUpdateTime = now;
+
+                if (state.tokens < 0.0) {
+                    std::string kickPacket = "KICK|" + playerName + "|Timer Hack Detected (Packet Rate Too High)\n";
+                    server.sendToClient(clientSocket, kickPacket);
+                    std::cout << "[KICK] " << playerName << " triggered Timer Hack (tokens: " << state.tokens << ")" << std::endl;
+                    
+                    state.tokens = 50.0; // Reset tokens to avoid kick spam
+                    playerManager.updatePlayer(playerName, state);
+                    return; // Stop processing this packet
+                }
+
+                // --- 2. Dynamic Speed Detection ---
+                if (state.initialized) {
+                    double dx = x - state.lastX;
+                    double dz = z - state.lastZ;
+                    double actualDistance = std::sqrt(dx * dx + dz * dz);
+
+                    double baseMaxSpeed = 0.36; 
+                    double multiplier = 1.0 + (0.20 * speedLevel);
+                    double maxAllowedDistance = (baseMaxSpeed * multiplier) + 0.05;
+
+                    if (actualDistance > maxAllowedDistance) {
+                        std::string kickPacket = "KICK|" + playerName + "|Speed Hack Detected\n";
+                        server.sendToClient(clientSocket, kickPacket);
+                        std::cout << "[KICK] " << playerName << " moved " << actualDistance 
+                                  << " (max: " << maxAllowedDistance << ")" << std::endl;
+                    }
+                }
+
+                // Update movement state
+                state.lastX = x;
+                state.lastY = y;
+                state.lastZ = z;
+                state.onGround = onGround;
+                state.initialized = true;
+                playerManager.updatePlayer(playerName, state);
             }
         } catch (const std::exception& e) {
-            std::cerr << "Error parsing packet: " << e.what() << " | Raw: " << rawMessage << std::endl;
+            std::cerr << "Error processing packet: " << e.what() << " | Raw: " << rawMessage << std::endl;
         }
     };
 
     server.start(onMessage);
 
-    std::cout << "Anti-Cheat Engine started. Press Enter to shutdown..." << std::endl;
+    std::cout << "Anti-Cheat Engine (Speed Module) started on port 25577." << std::endl;
+    std::cout << "Press Enter to shutdown..." << std::endl;
     std::cin.get();
 
     server.stop();

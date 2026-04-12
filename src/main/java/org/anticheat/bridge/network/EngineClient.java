@@ -4,6 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.anticheat.bridge.AntiCheatBridge;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -72,17 +75,39 @@ public class EngineClient {
         }, "AntiCheat-VerdictListener").start();
     }
 
-    private void processVerdict(String json) {
+    private void processVerdict(String line) {
+        if (line == null || line.isEmpty()) return;
+
+        // Support for new delimited format: KICK|<PlayerName>|<Reason>
+        if (line.startsWith("KICK|")) {
+            String[] parts = line.split("\\|");
+            if (parts.length >= 3) {
+                String playerName = parts[1];
+                String reason = parts[2];
+
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    Player player = Bukkit.getPlayer(playerName);
+                    if (player != null && player.isOnline()) {
+                        player.kick(Component.text(" [", NamedTextColor.DARK_GRAY)
+                                .append(Component.text("AntiCheat", NamedTextColor.AQUA))
+                                .append(Component.text("] ", NamedTextColor.DARK_GRAY))
+                                .append(Component.text(reason, NamedTextColor.GRAY)));
+                    }
+                });
+                return;
+            }
+        }
+
+        // Support for legacy JSON format
         try {
-            JsonObject verdict = gson.fromJson(json, JsonObject.class);
+            JsonObject verdict = gson.fromJson(line, JsonObject.class);
             if (verdict.has("player")) {
-                // Route back to main thread for execution
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     plugin.getActionHandler().handleVerdict(verdict);
                 });
             }
         } catch (Exception e) {
-            plugin.getLogger().warning("Received malformed verdict from engine: " + json);
+            plugin.getLogger().warning("Received malformed verdict from engine: " + line);
         }
     }
 
@@ -95,6 +120,18 @@ public class EngineClient {
                 out.println(json);
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to send data to engine: " + e.getMessage());
+            }
+        });
+    }
+
+    public void sendRaw(String message) {
+        if (!connected || out == null) return;
+        
+        networkExecutor.submit(() -> {
+            try {
+                out.println(message);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to send raw data to engine: " + e.getMessage());
             }
         });
     }
