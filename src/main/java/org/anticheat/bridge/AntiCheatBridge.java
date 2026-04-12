@@ -46,7 +46,10 @@ public class AntiCheatBridge extends JavaPlugin implements Listener {
             // 6. Register standard Movement Listener
             Bukkit.getPluginManager().registerEvents(new org.anticheat.bridge.listener.MovementListener(this), this);
             
-            // 7. Register self as Listener (for PlayerQuitEvent)
+            // 7. Register Firework Listener (Elytra tracking)
+            Bukkit.getPluginManager().registerEvents(new org.anticheat.bridge.listener.FireworkListener(this), this);
+            
+            // 8. Register self as Listener (for PlayerQuitEvent)
             Bukkit.getPluginManager().registerEvents(this, this);
             
             getLogger().info("AntiCheatBridge successfully linked to external engine.");

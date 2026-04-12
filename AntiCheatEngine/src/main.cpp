@@ -62,13 +62,25 @@ int main() {
                 return;
             }
 
-            if (parts.size() >= 7 && parts[0] == "MOVE") {
+            // --- Firework Tracking ---
+            if (parts.size() >= 2 && parts[0] == "FIREWORK") {
+                std::string playerName = parts[1];
+                PlayerState state = playerManager.getPlayer(playerName);
+                state.fireworkTicks = 40; // Grant 2 seconds of acceleration buffer (40 ticks)
+                playerManager.updatePlayer(playerName, state);
+                return;
+            }
+
+            // --- Advanced Movement Logic (Fly & Elytra) ---
+            if (parts.size() >= 10 && parts[0] == "POS") {
                 std::string playerName = parts[1];
                 double x = std::stod(parts[2]);
                 double y = std::stod(parts[3]);
                 double z = std::stod(parts[4]);
-                bool onGround = (parts[5] == "true");
-                int speedLevel = std::stoi(parts[6]);
+                // Yaw/Pitch (parts[5], parts[6]) not used for current heuristics
+                bool onGround = (parts[7] == "true");
+                bool validElytra = (parts[8] == "true");
+                int speedLevel = std::stoi(parts[9]);
 
                 unsigned long long now = getCurrentTimeMs();
                 PlayerState state = playerManager.getPlayer(playerName);
@@ -95,22 +107,61 @@ int main() {
                     return; // Stop processing this packet
                 }
 
-                // --- 2. Dynamic Speed Detection ---
+                // --- 2. Advanced Movement Detection ---
                 if (state.initialized) {
                     double dx = x - state.lastX;
+                    double dy = y - state.lastY;
                     double dz = z - state.lastZ;
                     double distance = std::sqrt(dx * dx + dz * dz);
 
-                    double limit = 0.36;
+                    // Update Air Ticks
+                    if (!onGround) state.airTicks++; else state.airTicks = 0;
 
-                    if (onGround) {
-                        limit = 0.36;
-                    } else if (state.lastOnGround) {
-                        // Jump (First air tick)
-                        limit = 0.62;
+                    // Update Sliding Window Momentum (Max size 8)
+                    state.dyHistory.push_back(dy);
+                    if (state.dyHistory.size() > 8) state.dyHistory.pop_front();
+
+                    // --- Layer 2: Vanilla Fly Check ---
+                    if (!onGround && !validElytra) {
+                        if (dy >= 0.0) {
+                            if (state.airTicks > 10) state.flyVL += 1.0; 
+                        } else {
+                            state.flyVL = std::max(0.0, state.flyVL - 0.05); // Forgive when falling
+                        }
+
+                        if (state.flyVL > 10.0) {
+                            std::string alertPacket = "ALERT|" + playerName + "|Fly Hack Detected\n";
+                            server.sendToClient(clientSocket, alertPacket);
+                            std::cout << "[ALERT] " << playerName << " triggered Fly Hack (VL: " << state.flyVL << ")" << std::endl;
+                            state.flyVL = 0.0;
+                        }
+                    }
+
+                    // --- Layer 1: Movement Heuristics (Speed & Elytra) ---
+                    double limit = 0.36; // Default ground speed
+
+                    if (validElytra) {
+                        // Elytra & Bounce Penalty logic
+                        double oldestDy = state.dyHistory.empty() ? 0.0 : state.dyHistory.front();
+                        double maxHorizontalCap = 1.8; // Level flight
+
+                        if (dy < -0.1) {
+                            maxHorizontalCap = 3.8; // Diving
+                        } else if (oldestDy < -0.05 && dy >= 0) {
+                            maxHorizontalCap = 0.8; // BOUNCE EXPLOIT PENALTY
+                        }
+
+                        double accel = (state.fireworkTicks > 0) ? 0.5 : 0.05;
+                        limit = std::min(maxHorizontalCap, (state.lastDistance * 0.99) + accel);
                     } else {
-                        // Air (Subsequent air ticks) - Friction math
-                        limit = (state.lastDistance * 0.91) + 0.026;
+                        // Standard Ground/Air friction logic
+                        if (onGround) {
+                            limit = 0.36;
+                        } else if (state.lastOnGround) {
+                            limit = 0.62; // Initial Jump
+                        } else {
+                            limit = (state.lastDistance * 0.91) + 0.026; // Air friction
+                        }
                     }
 
                     // Apply Potion Multiplier and lag buffer
@@ -118,17 +169,18 @@ int main() {
 
                     if (distance > limit) {
                         state.speedVL += 1.0;
-                        std::cout << "[DEBUG] " << playerName << " Speed VL: " << state.speedVL << std::endl;
+                        std::cout << "[DEBUG] " << playerName << " " << (validElytra ? "Elytra" : "Speed") 
+                                  << " VL: " << state.speedVL << " (Dist: " << distance << " > " << limit << ")" << std::endl;
 
                         if (state.speedVL > globalSpeedVlKick) {
-                            std::string alertPacket = "ALERT|" + playerName + "|Speed Hack Detected\n";
+                            std::string alertType = validElytra ? "Elytra Exploit" : "Speed Hack";
+                            std::string alertPacket = "ALERT|" + playerName + "|" + alertType + " Detected\n";
                             server.sendToClient(clientSocket, alertPacket);
-                            std::cout << "[ALERT] " << playerName << " exceeded Speed VL threshold (" << globalSpeedVlKick << ")." << std::endl;
+                            std::cout << "[ALERT] " << playerName << " exceeded " << alertType << " threshold." << std::endl;
                             state.speedVL = 0.0;
                         }
                     } else {
-                        state.speedVL -= 0.05;
-                        if (state.speedVL < 0.0) state.speedVL = 0.0;
+                        state.speedVL = std::max(0.0, state.speedVL - 0.05);
                     }
 
                     state.lastDistance = distance;
@@ -140,6 +192,7 @@ int main() {
                 state.lastZ = z;
                 state.lastOnGround = onGround;
                 state.onGround = onGround;
+                if (state.fireworkTicks > 0) state.fireworkTicks--;
                 state.initialized = true;
                 playerManager.updatePlayer(playerName, state);
             }

@@ -1,6 +1,7 @@
 package org.anticheat.bridge.listener;
 
 import org.anticheat.bridge.AntiCheatBridge;
+import org.bukkit.Material;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -27,7 +28,8 @@ public class MovementListener implements Listener {
         if (to == null) return;
 
         // Only process if the player actually moved (ignore rotation-only moves)
-        if (from.getX() == to.getX() && from.getY() == to.getY() && from.getZ() == to.getZ()) {
+        if (from.getX() == to.getX() && from.getY() == to.getY() && from.getZ() == to.getZ() && 
+            from.getYaw() == to.getYaw() && from.getPitch() == to.getPitch()) {
             return;
         }
 
@@ -38,17 +40,26 @@ public class MovementListener implements Listener {
             speedLevel = speedEffect.getAmplifier() + 1;
         }
 
-        // 2. Format: MOVE|<PlayerName>|<X>|<Y>|<Z>|<isOnGround>|<SpeedLevel>
-        String packet = String.format("MOVE|%s|%.4f|%.4f|%.4f|%b|%d",
+        // 2. Server-Side Elytra Validation
+        boolean isGliding = player.isGliding();
+        boolean hasElytra = player.getInventory().getChestplate() != null && 
+                          player.getInventory().getChestplate().getType() == Material.ELYTRA;
+        boolean validElytra = isGliding && hasElytra;
+
+        // 3. Format: POS|Player|X|Y|Z|Yaw|Pitch|OnGround|validElytra|speedLevel
+        String packet = String.format("POS|%s|%.4f|%.4f|%.4f|%.2f|%.2f|%b|%b|%d",
                 player.getName(),
                 to.getX(),
                 to.getY(),
                 to.getZ(),
+                to.getYaw(),
+                to.getPitch(),
                 player.isOnGround(),
+                validElytra,
                 speedLevel
         );
 
-        // 3. Send to C++ Engine
+        // 4. Send to C++ Engine
         plugin.getEngineClient().sendRaw(packet);
     }
 }

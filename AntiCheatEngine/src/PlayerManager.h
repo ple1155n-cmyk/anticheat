@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include <mutex>
+#include <deque>
 
 struct PlayerState {
     double lastX = 0, lastY = 0, lastZ = 0;
@@ -17,6 +18,12 @@ struct PlayerState {
     bool lastOnGround = true;
     double lastDistance = 0.0;
     double speedVL = 0.0;
+    
+    // New fields for Anti-Fly and Elytra Module
+    double flyVL = 0.0;
+    int airTicks = 0;
+    int fireworkTicks = 0;
+    std::deque<double> dyHistory; // Sliding window for Y-axis momentum (max size 8)
 };
 
 class PlayerManager {
