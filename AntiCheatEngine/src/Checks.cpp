@@ -1,6 +1,7 @@
 #include "Checks.h"
 #include <cmath>
 #include <iostream>
+#include <algorithm>
 
 std::optional<Verdict> Checks::performChecks(const json& data, PlayerManager& manager) {
     std::string uuid = data["player"];
@@ -22,10 +23,14 @@ std::optional<Verdict> Checks::performChecks(const json& data, PlayerManager& ma
     manager.decayVL(uuid);
     
     PlayerState state = manager.getPlayer(uuid);
-    state.lastX = x;
-    state.lastY = y;
-    state.lastZ = z;
-    state.onGround = onGround;
+    state.lastPosX = state.posX;
+    state.lastPosY = state.posY;
+    state.lastPosZ = state.posZ;
+    state.posX = x;
+    state.posY = y;
+    state.posZ = z;
+    state.wasGrounded = state.isGrounded;
+    state.isGrounded = onGround;
     state.lastPing = ping;
     state.initialized = true;
     manager.updatePlayer(uuid, state);
@@ -34,44 +39,38 @@ std::optional<Verdict> Checks::performChecks(const json& data, PlayerManager& ma
 }
 
 std::optional<Verdict> Checks::checkSpeed(const std::string& uuid, double x, double y, double z, bool onGround, const std::string& blockBelow, long long ping, PlayerManager& manager) {
-    PlayerState lastState = manager.getPlayer(uuid);
-    if (!lastState.initialized) return std::nullopt;
+    PlayerState s = manager.getPlayer(uuid);
+    if (!s.initialized) return std::nullopt;
 
-    double dx = x - lastState.lastX;
-    double dz = z - lastState.lastZ;
+    double dx = x - s.posX;
+    double dz = z - s.posZ;
     double dist2D = std::sqrt(dx * dx + dz * dz);
 
-    // Basic speed limit (sprinting is ~0.28 blocks/tick)
     double limit = 0.35; 
-    
-    // Adjust for ICE friction
     if (blockBelow == "ICE" || blockBelow == "PACKED_ICE" || blockBelow == "BLUE_ICE") {
-        limit = 0.6; // High friction/speed tolerance for ice
+        limit = 0.6; 
     }
-
-    // Ping buffer (very basic: +0.01 per 100ms)
     limit += (ping / 100.0) * 0.01;
 
     if (dist2D > limit) {
         manager.updateVL(uuid, 1.0f);
         PlayerState current = manager.getPlayer(uuid);
-        return Verdict{uuid, "FLAG", "SPEED", current.vl, true, "Moving too fast (dist: " + std::to_string(dist2D) + ")"};
+        return Verdict{uuid, "FLAG", "SPEED", current.vl, true, "Moving too fast"};
     }
 
     return std::nullopt;
 }
 
 std::optional<Verdict> Checks::checkFly(const std::string& uuid, double x, double y, double z, bool onGround, PlayerManager& manager) {
-    PlayerState lastState = manager.getPlayer(uuid);
-    if (!lastState.initialized) return std::nullopt;
+    PlayerState s = manager.getPlayer(uuid);
+    if (!s.initialized) return std::nullopt;
 
-    double dy = y - lastState.lastY;
+    double dy = y - s.posY;
 
-    // Standard jump height is ~1.25 blocks
-    if (!onGround && !lastState.onGround && dy > 0.6) {
+    if (!onGround && !s.isGrounded && dy > 0.6) {
         manager.updateVL(uuid, 1.5f);
         PlayerState current = manager.getPlayer(uuid);
-        return Verdict{uuid, "FLAG", "FLY", current.vl, true, "Impossible Y-delta while airborne"};
+        return Verdict{uuid, "FLAG", "FLY", current.vl, true, "Impossible Y-delta"};
     }
 
     return std::nullopt;

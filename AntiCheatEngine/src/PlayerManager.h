@@ -8,14 +8,15 @@
 #include <deque>
 
 struct PlayerState {
-    double lastX = 0, lastY = 0, lastZ = 0;
-    bool onGround = true;
+    double posX = 0, posY = 0, posZ = 0;
+    double lastPosX = 0, lastPosY = 0, lastPosZ = 0;
+    bool isGrounded = true;
+    bool wasGrounded = true;
     float vl = 0.0f;
     long long lastPing = 0;
     bool initialized = false;
     double tokens = 50.0;
     unsigned long long lastUpdateTime = 0;
-    bool lastOnGround = true;
     double lastDistance = 0.0;
     double speedVL = 0.0;
     
@@ -32,6 +33,7 @@ public:
     void updatePlayer(const std::string& name, const PlayerState& state);
     void updateVL(const std::string& name, float delta);
     void decayVL(const std::string& name);
+    void removePlayer(const std::string& name);
 
 private:
     std::unordered_map<std::string, PlayerState> m_players;

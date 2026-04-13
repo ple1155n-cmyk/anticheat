@@ -25,3 +25,9 @@ void PlayerManager::decayVL(const std::string& name) {
         m_players[name].vl = std::max(0.0f, m_players[name].vl - 0.1f);
     }
 }
+
+void PlayerManager::removePlayer(const std::string& name) {
+    std::unique_lock lock(m_mutex);
+    m_players.erase(name);
+}
+
