@@ -155,7 +155,7 @@ int main() {
                             maxHorizontalCap = 1.8; // Level flight without fireworks
                         }
 
-                        double accel = (state.fireworkTicks > 0) ? 0.5 : 0.05;
+                        double accel = (state.fireworkTicks > 0) ? 2.0 : 0.05; // 2.0 allows massive vector transfers safely.
                         limit = std::min(maxHorizontalCap, (state.lastDistance * 0.99) + accel);
                     } else {
                         // Standard Ground/Air friction logic
