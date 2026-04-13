@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.GameMode;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -22,6 +23,12 @@ public class MovementListener implements Listener {
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
+
+        // 1. Creative/Spectator Bypass
+        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
+            return;
+        }
+
         Location from = event.getFrom();
         Location to = event.getTo();
 
@@ -33,21 +40,24 @@ public class MovementListener implements Listener {
             return;
         }
 
-        // 1. Get Speed Potion Level
+        // 2. Liquid Detection
+        boolean inLiquid = player.getLocation().getBlock().isLiquid() || player.getEyeLocation().getBlock().isLiquid();
+
+        // 3. Get Speed Potion Level
         int speedLevel = 0;
         PotionEffect speedEffect = player.getPotionEffect(PotionEffectType.SPEED);
         if (speedEffect != null) {
             speedLevel = speedEffect.getAmplifier() + 1;
         }
 
-        // 2. Server-Side Elytra Validation
+        // 4. Server-Side Elytra Validation
         boolean isGliding = player.isGliding();
         boolean hasElytra = player.getInventory().getChestplate() != null && 
                           player.getInventory().getChestplate().getType() == Material.ELYTRA;
         boolean validElytra = isGliding && hasElytra;
 
-        // 3. Format: POS|Player|X|Y|Z|Yaw|Pitch|OnGround|validElytra|speedLevel
-        String packet = String.format("POS|%s|%.4f|%.4f|%.4f|%.2f|%.2f|%b|%b|%d",
+        // 5. Format: POS|Player|X|Y|Z|Yaw|Pitch|OnGround|validElytra|speedLevel|inLiquid
+        String packet = String.format("POS|%s|%.4f|%.4f|%.4f|%.2f|%.2f|%b|%b|%d|%b",
                 player.getName(),
                 to.getX(),
                 to.getY(),
@@ -56,10 +66,11 @@ public class MovementListener implements Listener {
                 to.getPitch(),
                 player.isOnGround(),
                 validElytra,
-                speedLevel
+                speedLevel,
+                inLiquid
         );
 
-        // 4. Send to C++ Engine
+        // 6. Send to C++ Engine
         plugin.getEngineClient().sendRaw(packet);
     }
 }

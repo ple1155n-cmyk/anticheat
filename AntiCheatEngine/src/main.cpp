@@ -72,7 +72,7 @@ int main() {
             }
 
             // --- Advanced Movement Logic (Fly & Elytra) ---
-            if (parts.size() >= 10 && parts[0] == "POS") {
+            if (parts.size() >= 11 && parts[0] == "POS") {
                 std::string playerName = parts[1];
                 double x = std::stod(parts[2]);
                 double y = std::stod(parts[3]);
@@ -81,6 +81,7 @@ int main() {
                 bool onGround = (parts[7] == "true");
                 bool validElytra = (parts[8] == "true");
                 int speedLevel = std::stoi(parts[9]);
+                bool inLiquid = (parts[10] == "true");
 
                 unsigned long long now = getCurrentTimeMs();
                 PlayerState state = playerManager.getPlayer(playerName);
@@ -122,7 +123,7 @@ int main() {
                     if (state.dyHistory.size() > 8) state.dyHistory.pop_front();
 
                     // --- Layer 2: Vanilla Fly Check ---
-                    if (!onGround && !validElytra) {
+                    if (!onGround && !validElytra && !inLiquid) {
                         if (dy >= 0.0) {
                             if (state.airTicks > 10) state.flyVL += 1.0; 
                         } else {
@@ -141,14 +142,17 @@ int main() {
                     double limit = 0.36; // Default ground speed
 
                     if (validElytra) {
-                        // Elytra & Bounce Penalty logic
                         double oldestDy = state.dyHistory.empty() ? 0.0 : state.dyHistory.front();
-                        double maxHorizontalCap = 1.8; // Level flight
+                        double maxHorizontalCap;
 
-                        if (dy < -0.1) {
-                            maxHorizontalCap = 3.8; // Diving
+                        if (state.fireworkTicks > 0) {
+                            maxHorizontalCap = 4.0; // Override for firework!
+                        } else if (dy < -0.1) {
+                            maxHorizontalCap = 3.8; // Vanilla diving
                         } else if (oldestDy < -0.05 && dy >= 0) {
-                            maxHorizontalCap = 0.8; // BOUNCE EXPLOIT PENALTY
+                            maxHorizontalCap = 0.8; // Bounce penalty
+                        } else {
+                            maxHorizontalCap = 1.8; // Level flight without fireworks
                         }
 
                         double accel = (state.fireworkTicks > 0) ? 0.5 : 0.05;
